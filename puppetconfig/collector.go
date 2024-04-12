@@ -41,8 +41,8 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 		c.Logger.Errorw("puppet_open_config_failed", "err", err)
 		return
 	}
-	server := config.Section("main").Key("server").String()
-	environment := config.Section("main").Key("environment").String()
+	server := config.Section("agent").Key("server").String()
+	environment := config.Section("agent").Key("environment").String()
 	ch <- prometheus.MustNewConstMetric(configDesc, prometheus.GaugeValue, 1, server, environment)
 }
 
