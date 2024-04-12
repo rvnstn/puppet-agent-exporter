@@ -14,7 +14,10 @@
 
 package puppetreport
 
-import "github.com/prometheus/client_golang/prometheus"
+import (
+	"github.com/prometheus/client_golang/prometheus"
+	"gopkg.in/ini.v1"
+)
 
 var (
 	catalogVersionDesc = prometheus.NewDesc(
@@ -48,7 +51,9 @@ var (
 
 type Collector struct {
 	Logger     Logger
+	ConfigPath string
 	ReportPath string
+	VarDir     string
 }
 
 func (c Collector) Describe(ch chan<- *prometheus.Desc) {
@@ -71,8 +76,30 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 func (c Collector) reportPath() string {
 	if c.ReportPath != "" {
 		return c.ReportPath
+	} else if c.VarDir != "" {
+		return c.VarDir + "/state/last_run_report.yaml"
 	}
-	return "/opt/puppetlabs/puppet/cache/state/last_run_report.yaml"
+	return c.varDir() + "/state/last_run_report.yaml"
+}
+
+func (c Collector) varDir() string {
+	config, err := ini.Load(c.configPath())
+	if err != nil {
+		c.Logger.Errorw("puppet_open_config_failed", "err", err)
+		return ""
+	}
+	vardir := config.Section("main").Key("vardir").String()
+	if vardir != "" {
+		return vardir
+	}
+	return "/opt/puppetlabs/puppet/cache"
+}
+
+func (c Collector) configPath() string {
+	if c.ConfigPath != "" {
+		return c.ConfigPath
+	}
+	return "/etc/puppetlabs/puppet/puppet.conf"
 }
 
 type Logger interface {
